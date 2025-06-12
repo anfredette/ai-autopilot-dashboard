@@ -1045,10 +1045,10 @@ class AutoPilotDashboard {
 
         this.createOverviewChart();
         this.createSLOChart();
-        this.createResourceChart();
         this.createGPUCharts();
         this.createVLLMCharts();
         this.createSLOComplianceChart();
+        this.updateResourceTable();
     }
 
     createOverviewChart() {
@@ -1104,27 +1104,6 @@ class AutoPilotDashboard {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: { legend: { position: 'bottom' } }
-            }
-        });
-    }
-
-    createResourceChart() {
-        const ctx = document.getElementById('resourceChart');
-        if (!ctx) return;
-        
-        this.charts.resource = new Chart(ctx.getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: ['Total GPUs', 'GPU Memory (GB)', 'Estimated Capacity'],
-                datasets: [{
-                    data: [this.cluster.totalGPUs, this.cluster.totalGPUMemory, Math.floor(this.cluster.totalGPUs * 20)],
-                    backgroundColor: ['#1FB8CD', '#FFC185', '#5D878F']
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } }
             }
         });
     }
@@ -1407,16 +1386,6 @@ class AutoPilotDashboard {
             this.charts.slo.update('none');
         }
 
-        // Update resource chart
-        if (this.charts.resource) {
-            this.charts.resource.data.datasets[0].data = [
-                this.cluster.totalGPUs,
-                this.cluster.totalGPUMemory,
-                Math.floor(this.cluster.totalGPUs * 20)
-            ];
-            this.charts.resource.update('none');
-        }
-
         // Update GPU charts
         if (this.charts.gpuUtil) {
             this.charts.gpuUtil.data.labels = labels;
@@ -1483,11 +1452,46 @@ class AutoPilotDashboard {
             this.charts.sloCompliance.data.datasets[3].data = this.data.slo.queue_compliance.slice(-50);
             this.charts.sloCompliance.update('none');
         }
+        this.updateResourceTable();
     }
 
     calculateAverage(arr) {
         if (arr.length === 0) return 0;
         return arr.reduce((sum, val) => sum + val, 0) / arr.length;
+    }
+
+    updateResourceTable() {
+        const table = document.getElementById('resourceTable').getElementsByTagName('tbody')[0];
+        if (!table) return;
+        // Example data, replace with real values as needed
+        const rows = [
+            {
+                resource: 'Total GPUs',
+                total: this.cluster.totalGPUs,
+                used: this.cluster.totalGPUs, // Replace with actual used if available
+                free: 0 // Replace with actual free if available
+            },
+            {
+                resource: 'GPU Memory (GB)',
+                total: this.cluster.totalGPUMemory,
+                used: Math.floor(this.cluster.totalGPUMemory * 0.7), // Example: 70% used
+                free: Math.floor(this.cluster.totalGPUMemory * 0.3)
+            },
+            {
+                resource: 'Estimated Capacity',
+                total: Math.floor(this.cluster.totalGPUs * 20),
+                used: Math.floor(this.cluster.totalGPUs * 20 * 0.6), // Example: 60% used
+                free: Math.floor(this.cluster.totalGPUs * 20 * 0.4)
+            }
+        ];
+        table.innerHTML = rows.map(row => `
+            <tr>
+                <td>${row.resource}</td>
+                <td>${row.total}</td>
+                <td>${row.used}</td>
+                <td>${row.free}</td>
+            </tr>
+        `).join('');
     }
 }
 
